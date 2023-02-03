@@ -10,6 +10,7 @@ admin.register_admin_handlers(dp)
 
 async def on_startup(_):
     bot.setup_resources()
+    print('ZXCasino')
 
 
 async def on_shutdown(_):
@@ -17,5 +18,5 @@ async def on_shutdown(_):
 
 
 if __name__ == '__main__':
-    logger.add('logs.log', enqueue=True)
+    logger.add('logs.log', enqueue=True, serialize=True)
     executor.start_polling(dp, on_startup=on_startup, on_shutdown=on_shutdown)

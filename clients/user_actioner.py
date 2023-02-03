@@ -47,7 +47,7 @@ class UserActioner:
         except ConnectionError:
             raise Exception('You need to setup!')
 
-    def user_exist(self, user_id: int):
+    def user_exists(self, user_id: int):
         try:
             user = self.database_client.execute_select_command(self._GET_USER, (user_id, ))
             return True if user else False

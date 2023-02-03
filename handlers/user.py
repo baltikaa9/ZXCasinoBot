@@ -11,8 +11,11 @@ from loguru import logger
 from config import ADMIN_ID
 from create_bot import bot, create_error_message
 
+
 def prepare_message_text(message: types.Message, text: str):
-    return text if (message.chat.type == 'private' or message.from_user.first_name is None) else f'{message.from_user.first_name}, {text}'
+    return text if (
+            message.chat.type == 'private' or message.from_user.first_name is None) else f'{message.from_user.first_name}, {text}'
+
 
 async def except_flood_control(message: types.Message, error: RetryAfter):
     logger.exception(error)
@@ -22,6 +25,7 @@ async def except_flood_control(message: types.Message, error: RetryAfter):
     bot.tg_client.post('SendMessage',
                        params={'chat_id': message.chat.id, 'text': f'Пожалуйста подождите {error.timeout} секунд'})
     await asyncio.sleep(error.timeout)
+
 
 async def parse_bet(message: types.Message, game: str):
     try:
@@ -42,6 +46,16 @@ async def parse_bet(message: types.Message, game: str):
     return bet
 
 
+def check_user_existence(func):
+    async def _wrapper(message: types.Message):
+        if not bot.user_actioner.user_exists(message.from_user.id):
+            await bot.send_message(message.chat.id,
+                                   prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        else:
+            await func(message)
+    return _wrapper
+
+
 async def help(message: types.Message):
     await bot.send_message(message.chat.id, '/slots (/s) <ставка> - крутить слоты 🎰\n'
                                             '/dice (/d) <ставка> - игра в кости 🎲\n'
@@ -50,6 +64,7 @@ async def help(message: types.Message):
                                             '/free - подачки для бедных (в разработке)\n'
                                             '/give <username> <amount> - передать пользователю <username> <amount> денег (Пример: /give soslblbu 10000)\n'
                                             '/top - топ игроков')
+
 
 async def start(message: types.Message):
     try:
@@ -63,8 +78,10 @@ async def start(message: types.Message):
             bot.user_actioner.create_user(user_id, username, firstname, 10000, date.today(), 0)
             create_new_user = True
 
-        await bot.send_message(message.chat.id, prepare_message_text(message, f'Вы {"уже" if not create_new_user else "успешно"} зарегистрированы.'))
-        await bot.send_message(message.chat.id, prepare_message_text(message, 'Чтобы узнать команды введите /help или /?'))
+        await bot.send_message(message.chat.id, prepare_message_text(message,
+                                                                     f'Вы {"уже" if not create_new_user else "успешно"} зарегистрированы.'))
+        await bot.send_message(message.chat.id,
+                               prepare_message_text(message, 'Чтобы узнать команды введите /help или /?'))
     except Exception as err:
         logger.exception(err)
         bot.tg_client.post('SendMessage', params={'chat_id': message.chat.id, 'text': 'Что-то пошло не так 😕'})
@@ -72,13 +89,15 @@ async def start(message: types.Message):
                                                                                f'{create_error_message(err)}'})
 
 
+@check_user_existence
 async def slots(message: types.Message):
     double_combinations = [2, 3, 4, 6, 11, 16, 17, 21, 23, 24, 27, 32, 33, 38, 41, 42, 44, 48, 49, 54, 59, 61, 62, 63]
     triple_combinations = [1, 22, 43]
     try:
-        if not bot.user_actioner.user_exist(message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
@@ -87,7 +106,6 @@ async def slots(message: types.Message):
             return
         elif bet == 'all':
             bet = balance
-
 
         if bet > balance:
             await bot.send_message(message.chat.id, prepare_message_text(message, 'Недостаточно денег 😆'))
@@ -142,11 +160,14 @@ async def throw_dice(bet: int, message: types.Message, state: FSMContext):
     await state.update_data(bot_value=value, bet=bet)
     await state.set_state(GameDice.user_die)
 
+
+@check_user_existence
 async def dice_start(message: types.Message, state: FSMContext):
     try:
-        if not bot.user_actioner.user_exist(message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
@@ -206,14 +227,17 @@ async def dice_finish_incorrect(message: types.Message, state: FSMContext):
 class GameShell(StatesGroup):
     user_choice = State()
 
+
+@check_user_existence
 async def shell_game(message: types.Message, state: FSMContext):
     try:
-        if not bot.user_actioner.user_exist(user_id=message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(user_id=message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         if bot.user_actioner.get_shell_date(user_id=message.from_user.id) == date.today() and \
-            bot.user_actioner.get_shell_count(user_id=message.from_user.id) == 5:
+                bot.user_actioner.get_shell_count(user_id=message.from_user.id) == 5:
             await bot.send_message(message.chat.id,
                                    prepare_message_text(message, 'Лимит исчерпан, приходите завтра.'))
             return
@@ -244,7 +268,6 @@ async def shell_game(message: types.Message, state: FSMContext):
         except RetryAfter as err:
             await except_flood_control(message=message, error=err)
 
-
         markup = types.InlineKeyboardMarkup()
         buttons = []
         for i in range(1, 4):
@@ -254,7 +277,8 @@ async def shell_game(message: types.Message, state: FSMContext):
 
         shuffle_msg = await bot.send_message(message.chat.id, 'Перемешиваю...')
         await asyncio.sleep(1.5)
-        await bot.edit_message_text( prepare_message_text(message, 'Угадай где приз'), message.chat.id, shuffle_msg.message_id, reply_markup=markup)
+        await bot.edit_message_text(prepare_message_text(message, 'Угадай где приз'), message.chat.id,
+                                    shuffle_msg.message_id, reply_markup=markup)
         await state.update_data(cases=cases, bot_msg=bot_msg, shuffle_msg=shuffle_msg)
         await state.set_state(GameShell.user_choice)
     except Exception as err:
@@ -276,7 +300,8 @@ async def callback_shell(callback: types.CallbackQuery, state: FSMContext):
         prize = random.randint(1000, 30001)
         await bot.send_message(callback.message.chat.id, f'Вы угадали и получаете {prize}')
         await bot.delete_message(callback.message.chat.id, shuffle_msg.message_id)
-        bot.user_actioner.update_balance(callback.from_user.id, bot.user_actioner.get_balance(callback.from_user.id) + prize)
+        bot.user_actioner.update_balance(callback.from_user.id,
+                                         bot.user_actioner.get_balance(callback.from_user.id) + prize)
         await state.finish()
     else:
         await bot.send_message(callback.message.chat.id, 'Вы не угадали')
@@ -287,11 +312,14 @@ async def callback_shell(callback: types.CallbackQuery, state: FSMContext):
     bot.user_actioner.update_shell_count(user_id=callback.from_user.id, updated_count=cur_shell_count + 1)
     await callback.answer()
 
+
+@check_user_existence
 async def balance(message: types.Message):
     try:
-        if not bot.user_actioner.user_exist(message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
@@ -306,16 +334,19 @@ async def balance(message: types.Message):
                                                                                f'{create_error_message(err)}'})
 
 
+@check_user_existence
 async def free(message: types.Message):
     try:
-        if not bot.user_actioner.user_exist(message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
         if balance < 10000:
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Поздравляю, вам начислены подачки в размере 10000 zxcoins 🎊'))
+            await bot.send_message(message.chat.id, prepare_message_text(message,
+                                                                         'Поздравляю, вам начислены подачки в размере 10000 zxcoins 🎊'))
             bot.user_actioner.update_balance(message.from_user.id, balance + 10000)
         else:
             await bot.send_message(message.chat.id, prepare_message_text(message, 'Вы слишком богатый 😐'))
@@ -326,17 +357,20 @@ async def free(message: types.Message):
                                                                                f'{create_error_message(err)}'})
 
 
+@check_user_existence
 async def give(message: types.Message):
     try:
-        if not bot.user_actioner.user_exist(message.from_user.id):
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-            return
+        # if not bot.user_actioner.user_exist(message.from_user.id):
+        #     await bot.send_message(message.chat.id,
+        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
+        #     return
 
         try:
             payee = message.text.split()[1]
         except IndexError:
-            await bot.send_message(message.chat.id, prepare_message_text(message, 'Укажите имя пользователя в тг и сумму\n'
-                                                                                  'Пример: /give soslblbu 10000'))
+            await bot.send_message(message.chat.id,
+                                   prepare_message_text(message, 'Укажите имя пользователя в тг и сумму\n'
+                                                                 'Пример: /give soslblbu 10000'))
             return
 
         try:
@@ -376,13 +410,12 @@ async def give(message: types.Message):
                                                                                f'{create_error_message(err)}'})
 
 
-
 async def top(message: types.Message):
     try:
         top = ''
         users = bot.user_actioner.get_top_users()
         for index, user in enumerate(users):
-            top += f'{index+1}. {user[0]}   {user[1]} zxcoins\n'
+            top += f'{index + 1}. {user[0]}   {user[1]} zxcoins\n'
         await bot.send_message(message.chat.id, f'Топ игроков:\n{top}')
     except Exception as err:
         logger.exception(err)
@@ -402,7 +435,9 @@ async def zxc(message: types.Message):
 
 async def test(message: types.Message):
     print(message.sticker)
-    await bot.send_sticker(message.chat.id, sticker='CAACAgIAAxkBAAIFJWO55ZXFOtwIjNCHNuAJ-ua9IA0cAALCFAACgIlASIt6Bgox9eyvLQQ')
+    await bot.send_sticker(message.chat.id,
+                           sticker='CAACAgIAAxkBAAIFJWO55ZXFOtwIjNCHNuAJ-ua9IA0cAALCFAACgIlASIt6Bgox9eyvLQQ')
+
 
 def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(start, commands=['start'])
@@ -419,4 +454,5 @@ def register_user_handlers(dp: Dispatcher):
     dp.register_message_handler(free, commands=['free'])
     # dp.register_message_handler(test, content_types=['sticker'])
 
-    dp.register_callback_query_handler(callback_shell, lambda callback: callback.data in ['1', '2', '3'], state=GameShell.user_choice)
+    dp.register_callback_query_handler(callback_shell, lambda callback: callback.data in ['1', '2', '3'],
+                                       state=GameShell.user_choice)
