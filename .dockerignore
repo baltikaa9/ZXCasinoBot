@@ -1,0 +1,16 @@
+# Common
+README.md
+CHANGELOG.md
+docker-compose.yml
+Dockerfile
+venv
+
+# git
+.git
+.gitattributes
+.gitignore
+
+# JetBrains
+.idea
+
+run_casino.bat

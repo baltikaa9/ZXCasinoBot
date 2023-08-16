@@ -47,12 +47,12 @@ async def parse_bet(message: types.Message, game: str):
 
 
 def check_user_existence(func):
-    async def _wrapper(message: types.Message):
+    async def _wrapper(message: types.Message, state: FSMContext):
         if not bot.user_actioner.user_exists(message.from_user.id):
             await bot.send_message(message.chat.id,
                                    prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
         else:
-            await func(message)
+            await func(message, state)
     return _wrapper
 
 
@@ -90,15 +90,10 @@ async def start(message: types.Message):
 
 
 @check_user_existence
-async def slots(message: types.Message):
+async def slots(message: types.Message, state: FSMContext):
     double_combinations = [2, 3, 4, 6, 11, 16, 17, 21, 23, 24, 27, 32, 33, 38, 41, 42, 44, 48, 49, 54, 59, 61, 62, 63]
     triple_combinations = [1, 22, 43]
     try:
-        # if not bot.user_actioner.user_exist(message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
         bet = await parse_bet(message, game='slots')
@@ -164,11 +159,6 @@ async def throw_dice(bet: int, message: types.Message, state: FSMContext):
 @check_user_existence
 async def dice_start(message: types.Message, state: FSMContext):
     try:
-        # if not bot.user_actioner.user_exist(message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
         bet = await parse_bet(message, game='dice')
@@ -231,11 +221,6 @@ class GameShell(StatesGroup):
 @check_user_existence
 async def shell_game(message: types.Message, state: FSMContext):
     try:
-        # if not bot.user_actioner.user_exist(user_id=message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         if bot.user_actioner.get_shell_date(user_id=message.from_user.id) == date.today() and \
                 bot.user_actioner.get_shell_count(user_id=message.from_user.id) == 5:
             await bot.send_message(message.chat.id,
@@ -314,13 +299,8 @@ async def callback_shell(callback: types.CallbackQuery, state: FSMContext):
 
 
 @check_user_existence
-async def balance(message: types.Message):
+async def balance(message: types.Message, state: FSMContext):
     try:
-        # if not bot.user_actioner.user_exist(message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
         if not balance:
@@ -335,13 +315,8 @@ async def balance(message: types.Message):
 
 
 @check_user_existence
-async def free(message: types.Message):
+async def free(message: types.Message, state: FSMContext):
     try:
-        # if not bot.user_actioner.user_exist(message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         balance = bot.user_actioner.get_balance(message.from_user.id)
 
         if balance < 10000:
@@ -358,13 +333,8 @@ async def free(message: types.Message):
 
 
 @check_user_existence
-async def give(message: types.Message):
+async def give(message: types.Message, state: FSMContext):
     try:
-        # if not bot.user_actioner.user_exist(message.from_user.id):
-        #     await bot.send_message(message.chat.id,
-        #                            prepare_message_text(message, 'Пожалуйста зарегистрируйтесь (/start).'))
-        #     return
-
         try:
             payee = message.text.split()[1]
         except IndexError:

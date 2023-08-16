@@ -45,7 +45,7 @@ class SQLiteClient:
 
 
 if __name__ == '__main__':
-    conn = sqlite3.connect('./users.db')
+    conn = sqlite3.connect('../db/users.db')
     conn.execute(CREATE_TABLE)
     conn.commit()
 

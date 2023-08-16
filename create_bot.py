@@ -3,7 +3,7 @@ from datetime import datetime
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from config import BOT_TOKEN, TG_API_URL, ADMIN_ID
+from config import BOT_TOKEN, TG_API_URL, ADMIN_ID, DB_PATH
 from clients.telegram_client import TelegramClient
 from clients.sqlite_client import SQLiteClient
 from clients.user_actioner import UserActioner
@@ -23,7 +23,7 @@ class MyBot(Bot):
 
 
 telegram_client = TelegramClient(token=BOT_TOKEN, base_url=TG_API_URL)  # для отправки сырых запросов
-user_actioner = UserActioner(SQLiteClient('clients/users.db'))
+user_actioner = UserActioner(SQLiteClient(DB_PATH))
 bot = MyBot(token=BOT_TOKEN, tg_client=telegram_client, user_actioner=user_actioner)
 dp = Dispatcher(bot, storage=MemoryStorage())
 

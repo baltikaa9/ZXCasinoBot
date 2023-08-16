@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
-
 from clients.sqlite_client import SQLiteClient
+
 
 class UserActioner:
     _CREATE_USER = """INSERT INTO users (user_id, username, firstname, balance, last_date_shell, shell_count) VALUES (?, ?, ?, ?, ?, ?)"""
@@ -29,27 +29,29 @@ class UserActioner:
 
     def get_user(self, user_id: int):
         try:
-            user = self.database_client.execute_select_command(self._GET_USER, (user_id, ))
+            user = self.database_client.execute_select_command(self._GET_USER, (user_id,))
             return user[0] if user else user
         except ConnectionError:
             raise Exception('You need to setup!')
 
     def get_user_by_username(self, username: str):
         try:
-            user = self.database_client.execute_select_command(self._GET_USER_BY_USNAME, (username, ))
+            user = self.database_client.execute_select_command(self._GET_USER_BY_USNAME, (username,))
             return user[0] if user else user
         except ConnectionError:
             raise Exception('You need to setup!')
 
-    def create_user(self, user_id: int, username: str, firstname: str, balance: int, last_shell_update: date, shell_count: int):
+    def create_user(self, user_id: int, username: str, firstname: str, balance: int, last_shell_update: date,
+                    shell_count: int):
         try:
-            self.database_client.execute_command(self._CREATE_USER, (user_id, username, firstname, balance, last_shell_update, shell_count))
+            self.database_client.execute_command(self._CREATE_USER, (
+            user_id, username, firstname, balance, last_shell_update, shell_count))
         except ConnectionError:
             raise Exception('You need to setup!')
 
     def user_exists(self, user_id: int):
         try:
-            user = self.database_client.execute_select_command(self._GET_USER, (user_id, ))
+            user = self.database_client.execute_select_command(self._GET_USER, (user_id,))
             return True if user else False
         except ConnectionError:
             raise Exception('You need to setup!')
@@ -101,10 +103,8 @@ class UserActioner:
             raise Exception('You need to setup!')
 
 
-
-
 if __name__ == '__main__':
-    user_actioner = UserActioner(SQLiteClient('users.db'))
+    user_actioner = UserActioner(SQLiteClient('../db/users.db'))
     user_actioner.setup()
     # print(user_actioner.get_shell_date(484127122))
     print(user_actioner.get_shell_count(484127122))

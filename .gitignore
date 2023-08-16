@@ -160,5 +160,5 @@ cython_debug/
 .idea/
 slots_combinations.py
 users.json
-clients/users.db
+db/users.db
 *.bat
